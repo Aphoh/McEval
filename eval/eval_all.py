@@ -11,19 +11,9 @@ import traceback
 import tempfile
 import shutil
 import random 
+import multiprocessing
+import uuid
 
-def prepare_tempdir_context(temp_dir):
-    shutil.copytree('../data/AWK', os.path.join(temp_dir, 'data/AWK'),dirs_exist_ok=True)
-    shutil.copytree('../data/C#', os.path.join(temp_dir, 'C#'),dirs_exist_ok=True)
-    shutil.copytree('../data/Common Lisp', os.path.join(temp_dir, 'Common Lisp'),dirs_exist_ok=True)
-    shutil.copytree('../data/F#', os.path.join(temp_dir, 'F#'),dirs_exist_ok=True)
-    shutil.copytree('../data/rust', os.path.join(temp_dir, 'rust'),dirs_exist_ok=True)
-    shutil.copytree('../data/go', os.path.join(temp_dir, 'go'),dirs_exist_ok=True)
-    shutil.copytree('../data/HTML', os.path.join(temp_dir, 'HTML'),dirs_exist_ok=True)
-    shutil.copytree('../data/JSON', os.path.join(temp_dir, 'JSON'),dirs_exist_ok=True)
-    shutil.copytree('../data/Markdown', os.path.join(temp_dir, 'Markdown'),dirs_exist_ok=True)
-    shutil.copytree('../data/Visual Basic', os.path.join(temp_dir, 'Visual Basic'),dirs_exist_ok=True)
-    
 def calculate_accuracy(args, lang, temp_dir):
     items = [json.loads(x) for x in open(f"{args.result_path}/{lang}.jsonl").readlines() if x]
     correct_count = 0
@@ -79,81 +69,94 @@ def calculate_accuracy(args, lang, temp_dir):
     return {"correct": correct_count, "accuracy": accuracy, 'total_count': len(items), 'fim_result':fim_result},  detail_scores 
 
 
-def clean_cache():
-    beam_path = '/workspace/MMCodeEval/eval'
-    files_to_delete = glob.glob(os.path.join(beam_path, '*' + "beam"))
-    for file_path in files_to_delete:
-        try:
-            os.remove(file_path)
-        except OSError as e:
-            print(f"Error: {e.filename} - {e.strerror}.")
+def get_data_dirs_for_lang(lang):
+    # Map language to data subdirs needed for that language
+    # Expand as needed for your dataset
+    mapping = {
+        'AWK': ['AWK'],
+        'C#': ['C#'],
+        'Common Lisp': ['Common Lisp'],
+        'F#': ['F#'],
+        'rust': ['rust'],
+        'go': ['go'],
+        'HTML': ['HTML'],
+        'JSON': ['JSON'],
+        'Markdown': ['Markdown'],
+        'Visual Basic': ['Visual Basic'],
+        # Add more as needed
+    }
+    return mapping.get(lang, [lang])
 
-    go_cache_path ='/workspace/MMCodeEval/data/go'
-    files_to_delete = glob.glob(os.path.join(go_cache_path, '*' + ".go"))
-    for file_path in files_to_delete:
+def run_single_test(args_tuple):
+    item, lang, result_path = args_tuple
+    temp_dir = f"/tmp/mceval_{uuid.uuid4()}"
+    os.makedirs(temp_dir, exist_ok=True)
+    # Copy only the needed data dirs
+    for subdir in get_data_dirs_for_lang(lang):
+        src = os.path.join(os.path.dirname(result_path), 'data', subdir)
+        dst = os.path.join(temp_dir, subdir)
+        if os.path.exists(src):
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+    # Special handling for AWK reference output
+    if lang == 'AWK':
         try:
-            os.remove(file_path)
-        except OSError as e:
-            print(f"Error: {e.filename} - {e.strerror}.")
-
-    tmp_cache_path ='/workspace/MMCodeEval/eval/tmp'
-    files_to_delete = glob.glob(os.path.join(tmp_cache_path, '*'))
-    for file_path in files_to_delete:
-        try:
-            os.remove(file_path)
-        except OSError as e:
-            print(f"Error: {e.filename} - {e.strerror}.")
+            get_awk_ans(item, temp_dir)
+        except Exception:
+            pass
+    try:
+        code = extract(item["raw_generation"][0], item, lang)
+    except Exception:
+        code = "1234"
+    if code is None:
+        code = "1234"
+    try:
+        path, _, _ = save2file_with_tempdir(content=code, language_type=lang, item=item, temp_dir=temp_dir)
+        passed = excute(lang, path, item["task_id"], temp_dir=temp_dir)
+    except Exception:
+        passed = False
+    # Clean up temp dir
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    return {"task_id": item["task_id"], "sample": item.get("sample", 0), "pass": passed}
 
 def eval(args):
-    clean_cache()
     exclude_langs = ['sql']
-
     langs = [x.split('.')[0] for x in os.listdir(args.result_path) if x.endswith('.jsonl')]
     save_path = os.path.join(args.save_path, os.path.basename(args.result_path)+'.jsonl')
     detail_save_path = os.path.join(args.save_path, os.path.basename(args.result_path)+'_detail.jsonl')
-    # print(save_path)
     if os.path.exists(save_path):
         finish_langs = [x.split('\t')[0].strip().lower() for x in open(save_path, 'r').readlines()]
     else:
         finish_langs = []
-  
     langs = [lang for lang in langs if (lang.lower() not in exclude_langs+finish_langs)]
     random.shuffle(langs)
-
     print(langs)
     score = {}
-    
-    # with tempfile.TemporaryDirectory() as temp_dir:
-    temp_dir = '/workspace/MMCodeEval/eval/tmp'
-    prepare_tempdir_context(temp_dir)
-    # orgin_dir = os.getcwd()
-    os.chdir(temp_dir)
     for lang in langs:
-        lang_score, detail_scores = calculate_accuracy(args, lang, temp_dir)
-        score[lang] = lang_score 
-        print('#'*80)
-        print('#'*80)
-        print('\n'*3)
-        print(f'Lang: {lang}')
-        print(score[lang])
+        # Now handled by run_single_test in parallel, no need for temp_dir setup here
+        pass
+    # The actual evaluation is now handled by main()
 
-        with open(save_path, 'a') as f:
-            f.write(lang+'\t'+json.dumps(score[lang])+'\n')
-
-        # with open(detail_save_path, 'a') as f:
-        #     f.write(lang+'\t'+json.dumps(detail_scores)+'\n')
-        
-        print('\n'*3)
-        print('#'*80)
-        print('#'*80)
-        # clean_cache()
-    print(score)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--result_path', type=str, default='../results')
+    parser.add_argument('--output_path', type=str, default='../tmp_eval_out')
+    args = parser.parse_args()
+    jobs = []
+    for fname in os.listdir(args.result_path):
+        if not fname.endswith('.jsonl'):
+            continue
+        lang = fname.split('.')[0]
+        with open(os.path.join(args.result_path, fname)) as f:
+            for line in f:
+                if line.strip():
+                    item = json.loads(line)
+                    jobs.append((item, lang, args.result_path))
+    with multiprocessing.Pool() as pool:
+        results = pool.map(run_single_test, jobs)
+    with open(args.output_path, 'w') as f:
+        for res in results:
+            f.write(json.dumps(res) + '\n')
 
 
 if __name__ == '__main__':
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--result_path', type=str, default='/workspace/MMCodeEval/result/process_result_0313/split_result/outputs_fim_light/deepseek-coder-7b-instruct')
-    arg_parser.add_argument('--save_path', type=str, default='/workspace/MMCodeEval/result/process_result_0313/fim_light')
-    args = arg_parser.parse_args()
-    eval(args)
-    
+    main()

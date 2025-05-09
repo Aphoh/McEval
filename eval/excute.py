@@ -354,7 +354,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
             return False    
     
     elif language_type == "AWK":
-        ori_path = os.getcwd()
         def compare_txt_files(file1, file2):
             """比较两个 txt 文件是否相同."""
             try:
@@ -369,11 +368,9 @@ def excute(language_type, path, task_id, temp_dir)->bool:
                 # todo 对比文件结果
                 awk_command = path
                 with time_limit(timeout):
-                    os.chdir('../')
                     # result = subprocess.check_output(
                     #     awk_command, shell=True)
                     result = subprocess.run([awk_command], shell=True)
-                os.chdir(ori_path)
                 # 将结果保存到1.txt文件
                 file_path1 = os.path.join(temp_dir,"output.txt")
                 with open(file_path1, "w") as file:
@@ -387,11 +384,9 @@ def excute(language_type, path, task_id, temp_dir)->bool:
                     return False
         except TimeoutException:
             print("time out")
-            os.chdir(ori_path)
             return False
         except Exception as e:
             print(traceback.print_exc())
-            os.chdir(ori_path)
             return False
     elif language_type == "Erlang":
         try:
@@ -832,32 +827,27 @@ def excute(language_type, path, task_id, temp_dir)->bool:
             print("time out")
         return False
     elif language_type == "Go":
-        ori_path = os.getcwd()
-        file_name = path.split('/')[-1]
-        shutil.copy(path, './go/'+file_name)
-        os.chdir('./go')
+        file_name = os.path.basename(path)
+        go_dir = os.path.join(temp_dir, 'go')
+        os.makedirs(go_dir, exist_ok=True)
+        shutil.copy(path, os.path.join(go_dir, file_name))
         try:
             with time_limit(timeout+20):
-                run_result = subprocess.run(['go', 'test', file_name])
+                run_result = subprocess.run(['go', 'test', file_name], cwd=go_dir)
                 if run_result.exit_code != 0:
                     print("\nRun failed. Error message:")
                     print(run_result.stderr)
-                    os.chdir(ori_path)
                     return False
                 elif 'assert()' in  run_result.stderr and 'failed' in run_result.stderr:
                     print("\nRun failed. Error message:")
                     print(run_result.stderr)
-                    os.chdir(ori_path)
                     return False
                 else:
                     print("pass")
-                    os.chdir(ori_path)
                     return True
 
         except TimeoutException:
             print("time out")
-            os.chdir(ori_path)
-        os.chdir(ori_path)
         return False
 
     elif language_type == "JavaScript":
