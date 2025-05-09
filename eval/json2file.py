@@ -91,5 +91,5 @@ def json2file(line):
     if language_type not in ["AWK", 'HTML', 'Markdown', 'JSON']:
         with open(output_file, 'w') as f:
             f.write(content)
-    print(f'JSONL数据已成功转换为{language_type}文件，并保存到 {output_file}')
+    print(f'JSONL data successfully converted to {language_type} file and saved to {output_file}')
     return output_file, language_type, line['task_id']

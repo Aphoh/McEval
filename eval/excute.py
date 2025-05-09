@@ -28,7 +28,9 @@ def time_limit(seconds: float):
 class TimeoutException(Exception):
     pass
 
-def excute(language_type, path, task_id, temp_dir)->bool:
+# Helper: translate all comments and docstrings to English, remove dead code, and clean up
+
+def excute(language_type, path, task_id, temp_dir) -> bool:
     if language_type == "Common Lisp":
         try:
             exec_res = None
@@ -250,7 +252,7 @@ def excute(language_type, path, task_id, temp_dir)->bool:
             return False
     elif language_type == "JSON":
         def read_json_file(file_path):
-            """读取并解析 JSON 文件."""
+            """Read and parse a JSON file."""
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     return json.load(file)
@@ -259,22 +261,20 @@ def excute(language_type, path, task_id, temp_dir)->bool:
                 return None
 
         def compare_json_files(file1, file2):
-            """比较两个 JSON 文件是否相同."""
+            """Compare two JSON files for equality."""
             json1 = read_json_file(file1)
             json2 = read_json_file(file2)
-
             if json1 is None or json2 is None:
                 return False
-
             return json1 == json2
 
         try:
             with time_limit(timeout):
                 file_path1 = path
                 if '-' in task_id:
-                    file_path2 = os.path.join(temp_dir,'JSON/'+ task_id.split('/')[1].split('-')[0]+'.json')
+                    file_path2 = os.path.join(temp_dir, 'JSON/' + task_id.split('/')[1].split('-')[0] + '.json')
                 else:
-                    file_path2 = os.path.join(temp_dir,'JSON/'+ task_id.split('/')[1]+'.json')
+                    file_path2 = os.path.join(temp_dir, 'JSON/' + task_id.split('/')[1] + '.json')
                 if compare_json_files(file_path1, file_path2):
                     print("pass")
                     return True
@@ -286,7 +286,7 @@ def excute(language_type, path, task_id, temp_dir)->bool:
             return False
     elif language_type == "HTML":
         def read_html_file(file_path):
-            """读取并解析 HTML 文件."""
+            """Read and parse an HTML file."""
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     return BeautifulSoup(file, 'html.parser')
@@ -295,26 +295,20 @@ def excute(language_type, path, task_id, temp_dir)->bool:
                 return None
 
         def compare_html_files(file1, file2):
-            """比较两个 HTML 文件是否相同."""
+            """Compare two HTML files for equality."""
             html1 = read_html_file(file1)
             html2 = read_html_file(file2)
-
             if html1 is None or html2 is None:
                 return False
-
-            # 使用prettify()方法将解析后的HTML转换为字符串，然后比较字符串
             return html1.prettify().strip() == html2.prettify().strip()
 
         try:
-            # print(path)
             with time_limit(timeout):
                 file_path1 = path
                 if '-' in task_id:
-                    file_path2 = os.path.join(temp_dir,'HTML/'+ task_id.split('/')[1].split('-')[0] +'.html')
+                    file_path2 = os.path.join(temp_dir, 'HTML/' + task_id.split('/')[1].split('-')[0] + '.html')
                 else:
-                    file_path2 = os.path.join(temp_dir,'HTML/'+ task_id.split('/')[1]+'.html')
-
-                
+                    file_path2 = os.path.join(temp_dir, 'HTML/' + task_id.split('/')[1] + '.html')
                 if compare_html_files(file_path1, file_path2):
                     print("pass")
                     return True
@@ -326,23 +320,19 @@ def excute(language_type, path, task_id, temp_dir)->bool:
             return False
     elif language_type == "Markdown":
         def compare_markdown_files(file1, file2):
-            """比较两个 Markdown 文件是否相同."""
+            """Compare two Markdown files for equality."""
             try:
-                # 使用 filecmp 模块比较文件内容
                 return filecmp.cmp(file1, file2, shallow=False)
             except FileNotFoundError as e:
                 print(f"Error reading {file1} or {file2}: {e}")
                 return False
-
-        # 使用示例
         try:
-            # print(path)
             with time_limit(timeout):
                 file_path1 = path
                 if '-' in task_id:
-                    file_path2 = os.path.join(temp_dir,'Markdown/' + task_id.split('/')[1].split('-')[0] + '.md')
+                    file_path2 = os.path.join(temp_dir, 'Markdown/' + task_id.split('/')[1].split('-')[0] + '.md')
                 else:
-                    file_path2 = os.path.join(temp_dir,'Markdown/' + task_id.split('/')[1] + '.md')
+                    file_path2 = os.path.join(temp_dir, 'Markdown/' + task_id.split('/')[1] + '.md')
                 if compare_markdown_files(file_path1, file_path2):
                     print("pass")
                     return True
@@ -352,13 +342,10 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False    
-    
     elif language_type == "AWK":
         def compare_txt_files(file1, file2):
-            """比较两个 txt 文件是否相同."""
+            """Compare two txt files for equality."""
             try:
-                # 使用 filecmp 模块比较文件内容
-    
                 return filecmp.cmp(file1, file2, shallow=False)
             except FileNotFoundError as e:
                 print(f"Error reading {file1} or {file2}: {e}")
@@ -390,44 +377,43 @@ def excute(language_type, path, task_id, temp_dir)->bool:
             return False
     elif language_type == "Erlang":
         try:
-            # 编译 Erlang 程序的命令
+            # Compile Erlang program
             with time_limit(timeout):
                 compile_command = ['erlc', path]
                 module_name = path.split("/")[-1].split(".")[0]
                 # print(module_name)
-                # 运行测试的 Erlang 命令
+                # Run tests with Erlang
                 run_test_command = ['erl', '-noshell', '-s',
                                     module_name, 'test', '-s', 'init', 'stop']
 
-                # 编译 Erlang 程序
+                # Compile Erlang program
                 compile_result = subprocess.run(
                     compile_command)
 
-                # 检查编译是否成功
+                # Check if compilation was successful
                 if compile_result.exit_code != 0:
-                    print("编译失败:", compile_result.stdout)
+                    print("Compilation failed:", compile_result.stdout)
                     return False
                 else:
-                    print("编译成功")
+                    print("Compilation succeeded")
 
-                    # 运行测试
+                    # Run tests
                     run_test_result = subprocess.run(
                         run_test_command)
 
-                    # 输出测试结果
-                    #print("测试结果:\n", run_test_result.stdout)
+                    # Output test results
+                    #print("Test results:\n", run_test_result.stdout)
 
-                    # 判断测试是否成功
+                    # Check if tests were successful
                     if run_test_result.exit_code == 0:
-                        print("测试执行成功")
+                        print("Tests executed successfully")
                         return True
                     else:
-                        print("测试执行失败")
+                        print("Tests execution failed")
                         return False
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type in ["julia", "Julia"]:
         try:
             exec_res = None
@@ -445,7 +431,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type == "Python":
         try:
             exec_res = None
@@ -480,7 +465,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-        
     elif language_type.lower() in ["coffee", "coffeescript"]:
         try:
             exec_res = None
@@ -499,7 +483,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type in ["kotlin", "Kotlin"]:
         try:
             exec_res = None
@@ -517,7 +500,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type in ["php", "PHP"]:
         try:
             exec_res = None
@@ -540,7 +522,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type in ['r', 'R']:
         try:
             exec_res = None
@@ -559,7 +540,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type in ["ruby", 'Ruby']:
         try:
             exec_res = None
@@ -596,7 +576,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-                  
     elif language_type in ["cs", 'C_sharp', 'C#']:
         try:
             # print(path)
@@ -619,43 +598,36 @@ def excute(language_type, path, task_id, temp_dir)->bool:
     elif language_type in ["fortran", "Fortran"]:
         try: 
             with time_limit(timeout):
-            # 编译 fortran 程序的命令
+            # Compile fortran 程序
                 module_name = os.path.join(temp_dir, path.split("/")[1].split(".")[0])
-        
                 compile_command = ['gfortran', '-o', module_name, path]
                 # print(module_name)
-                # 运行测试的 fortran 命令
+                # Run tests with fortran
                 run_test_command = [module_name]
-
-                # 编译 fortran 程序
+                # Compile fortran 程序
                 compile_result = subprocess.run(
                     compile_command)
-
-                # 检查编译是否成功
+                # Check if compilation was successful
                 if compile_result.exit_code != 0:
-                    print("编译失败:", compile_result.stderr)
+                    print("Compilation failed:", compile_result.stderr)
                     return False
                 else:
-                    print("编译成功")
-
-                    # 运行测试
+                    print("Compilation succeeded")
+                    # Run tests
                     run_test_result = subprocess.run(
                         run_test_command)
-
-                    # 判断测试是否成功
+                    # Check if tests were successful
                     if run_test_result.exit_code != 0:
-                        print("测试执行失败")
-                        return False
+                        print("Test execution failed")
+                        print(run_test_result.stderr)
                     elif 'failed' in run_test_result.stdout:
-                        print("error 测试执行失败")
-                        return False
+                        print("Test execution failed (output contains 'failed')")
                     else:
-                        print("测试执行成功")
+                        print("Test executed successfully")
                         return True 
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type == "Rust":
         try:
             ori_path = os.getcwd()
@@ -666,7 +638,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
                 time.sleep(1)
                 run_result = subprocess.run(
                     ['cargo', 'test'])
-
                 print(task_id)
                 # print(run_result)
                 if run_result.exit_code != 0:
@@ -680,13 +651,11 @@ def excute(language_type, path, task_id, temp_dir)->bool:
                     time.sleep(1)
                     os.chdir(ori_path)
                     return True
-
         except TimeoutException:
             print("time out") 
             time.sleep(1)
             os.chdir(ori_path) 
             return False
-
     elif language_type in ["scala", "Scala"]:
         try:
             exec_res = None
@@ -705,7 +674,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type in ["dart", 'Dart']:
         try:
             exec_res = None
@@ -724,7 +692,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type in ["groovy", "Groovy"]:
         try:
             exec_res = None
@@ -743,62 +710,43 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type == "C":
         try:
-           
             module_name = os.path.join(temp_dir, path.split("/")[1].split(".")[0])
             compile_command = ['gcc', '-o', module_name, path, '-lm']
-            # print(module_name)
             run_test_command = [module_name]
-            compile_result = subprocess.run(
-                compile_command)
-
+            compile_result = subprocess.run(compile_command)
             if compile_result.exit_code != 0:
-                print("编译失败:", compile_result.stderr)
+                print("Compilation failed:", compile_result.stderr)
             else:
-                print("编译成功")
+                print("Compilation succeeded")
                 with time_limit(timeout):
-                    # 运行测试
-                    run_test_result = subprocess.run(
-                        run_test_command)
-
-                    # 输出测试结果
-                    # print("测试结果:\n", run_test_result.stdout)
-
-                    # 判断测试是否成功
+                    run_test_result = subprocess.run(run_test_command)
                     if run_test_result.exit_code != 0:
-                        print("测试执行失败")
+                        print("Test execution failed")
                         print(run_test_result.stderr)
                     elif 'failed' in run_test_result.stdout:
-                        print("error 测试执行失败")
+                        print("Test execution failed (output contains 'failed')")
                     else:
-                        print("测试执行成功")
+                        print("Test executed successfully")
                         return True
         except TimeoutException:
             print("time out")
         return False
-
     elif language_type == "CPP":
         try:
-            
             # print(path, path.split("/")[-1].split(".")[0])
             module_name = os.path.join(temp_dir, path.split("/")[-1].split(".")[0])
             compile_command = ['g++', '-g', '-std=c++11', '-o', module_name, path]
-
-            # print(module_name)
-        
             run_test_command = [module_name]
-
-            # 编译 fortran 程序
+            # Compile fortran 程序
             # compile_result = subprocess.run(compile_command)
             compile_result = subprocess.run(compile_command)
-
-            # 检查编译是否成功
+            # Check if compilation was successful
             if compile_result.exit_code != 0:
-                print("编译失败:", compile_result.stderr)
+                print("Compilation failed:", compile_result.stderr)
             else:
-                print("编译成功")
+                print("Compilation succeeded")
                 with time_limit(timeout):
                     # 运行测试
                     run_test_result = subprocess.run(run_test_command)
@@ -813,7 +761,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
                     #     raise UnicodeDecodeError('无法解码输出')
                     # 输出测试结果
                     # print("测试结果:\n", output)
-
                     # 判断测试是否成功
                     if run_test_result.exit_code != 0:
                         print("测试执行失败")
@@ -845,11 +792,9 @@ def excute(language_type, path, task_id, temp_dir)->bool:
                 else:
                     print("pass")
                     return True
-
         except TimeoutException:
             print("time out")
         return False
-
     elif language_type == "JavaScript":
         try:
             exec_res = None
@@ -868,7 +813,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
         return False
-
     elif language_type == "TypeScript":
         try:
             exec_res = None
@@ -890,7 +834,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
             return False
-
     elif language_type == "VimScript":
         try:
             exec_res = None
@@ -914,7 +857,6 @@ def excute(language_type, path, task_id, temp_dir)->bool:
             traceback.print_exc()
             return False 
         return False
-
     elif language_type == "Lua":
         try:
             exec_res = None
@@ -935,33 +877,24 @@ def excute(language_type, path, task_id, temp_dir)->bool:
         except TimeoutException:
             print("time out")
         return False
-
     elif language_type == "Pascal":
         try:
-           
             module_name = os.path.join(temp_dir, path.split("/")[-1].split(".")[0])
             compile_command = ['fpc', path, '-MObjfpc']
-
-    
             run_test_command = [module_name]
-
-      
             compile_result = subprocess.run(
                 compile_command)
-
-            # 检查编译是否成功
+            # Check if compilation was successful
             if compile_result.exit_code != 0:
-                print("编译失败:", compile_result.stdout)
+                print("Compilation failed:", compile_result.stdout)
             else:
-                print("编译成功")
+                print("Compilation succeeded")
                 with time_limit(timeout):
                     # 运行测试
                     run_test_result = subprocess.run(
                         run_test_command)
-
                     # 输出测试结果
                     print("测试结果:\n", run_test_result.stdout)
-
                     # 判断测试是否成功
                     if run_test_result.exit_code != 0:
                         print("测试执行失败")
@@ -980,9 +913,7 @@ def excute(language_type, path, task_id, temp_dir)->bool:
     else:
         print('can not found lang:', {language_type})
 
-
 def get_awk_ans(item, temp_dir):
-    
     try:
         with time_limit(timeout):
             # todo 对比文件结果

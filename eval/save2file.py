@@ -122,7 +122,7 @@ def save2file(content, language_type, item):
         else:
             with open(output_file, 'w') as f:
                 f.write(content)
-    print(f'代码已成功转换为{language_type}文件，并保存到 {output_file}')
+    print(f'{language_type} file successfully written to {output_file}')
     return output_file, language_type, task_id
 
 
@@ -177,5 +177,5 @@ def save2file_with_tempdir(content, language_type, item, temp_dir):
         else:
             with open(output_file, 'w') as f:
                 f.write(content)
-    print(f'代码已成功转换为{language_type}文件，并保存到 {output_file}')
+    print(f'{language_type} file successfully written to {output_file}')
     return output_file, language_type, task_id
