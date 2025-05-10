@@ -14,61 +14,6 @@ import random
 import multiprocessing
 import uuid
 
-def calculate_accuracy(args, lang, temp_dir):
-    items = [json.loads(x) for x in open(f"{args.result_path}/{lang}.jsonl").readlines() if x]
-    correct_count = 0
-    fim_result = {'single': {"correct": 0, "accuracy": 0, 'total_count': 0}, 
-                  'multi' : {"correct": 0, "accuracy": 0, 'total_count': 0}, 
-                  'span'  : {"correct": 0, "accuracy": 0, 'total_count': 0} }
-
-    detail_scores = []  
-
-    for item in items:
-        if lang == 'AWK':
-            get_awk_ans(item, temp_dir)
-        try:
-            code = extract(item["raw_generation"][0], item, lang)
-        except:
-            print(f'+++++ Extract {item["task_id"]} failed')
-            code = "1234"  #avoid code file is empty    
-        if code is None:
-            code = "1234"
-
-        path, _, _ = save2file_with_tempdir(content=code, language_type=lang, item=item, temp_dir=temp_dir)
-
-        if 'single' in item['task_id']:
-            fim_result['single']['total_count']+=1
-        elif 'multi' in item['task_id']:
-            fim_result['multi']['total_count']+=1
-        elif 'span' in item['task_id']:
-            fim_result['span']['total_count']+=1
-        # try:
-        if excute(lang, path, item["task_id"], temp_dir=temp_dir):
-            correct_count += 1
-            if 'single' in item['task_id']:
-                fim_result['single']['correct']+=1
-            elif 'multi' in item['task_id']:
-                fim_result['multi']['correct']+=1
-            elif 'span' in item['task_id']:
-                fim_result['span']['correct']+=1
-        # except:
-        #     traceback.print_exc()
-            detail_scores.append({'task_id':item['task_id'], 'pass':True })
-        else:
-            detail_scores.append({'task_id':item['task_id'], 'pass':False})
-
-    accuracy = correct_count / len(items)
-    if fim_result['single']['total_count']:
-        fim_result['single']['accuracy'] = fim_result['single']['correct']/fim_result['single']['total_count']
-    if fim_result['multi']['total_count']:
-        fim_result['multi']['accuracy'] = fim_result['multi']['correct']/fim_result['multi']['total_count']
-    if fim_result['span']['total_count']:
-        fim_result['span']['accuracy'] = fim_result['span']['correct']/fim_result['span']['total_count']  
-
-           
-    return {"correct": correct_count, "accuracy": accuracy, 'total_count': len(items), 'fim_result':fim_result},  detail_scores 
-
-
 def get_data_dirs_for_lang(lang):
     # Map language to data subdirs needed for that language
     # Expand as needed for your dataset
@@ -117,24 +62,6 @@ def run_single_test(args_tuple):
     # Clean up temp dir
     shutil.rmtree(temp_dir, ignore_errors=True)
     return {"task_id": item["task_id"], "sample": item.get("sample", 0), "pass": passed}
-
-def eval(args):
-    exclude_langs = ['sql']
-    langs = [x.split('.')[0] for x in os.listdir(args.result_path) if x.endswith('.jsonl')]
-    save_path = os.path.join(args.save_path, os.path.basename(args.result_path)+'.jsonl')
-    detail_save_path = os.path.join(args.save_path, os.path.basename(args.result_path)+'_detail.jsonl')
-    if os.path.exists(save_path):
-        finish_langs = [x.split('\t')[0].strip().lower() for x in open(save_path, 'r').readlines()]
-    else:
-        finish_langs = []
-    langs = [lang for lang in langs if (lang.lower() not in exclude_langs+finish_langs)]
-    random.shuffle(langs)
-    print(langs)
-    score = {}
-    for lang in langs:
-        # Now handled by run_single_test in parallel, no need for temp_dir setup here
-        pass
-    # The actual evaluation is now handled by main()
 
 def main():
     parser = argparse.ArgumentParser()
